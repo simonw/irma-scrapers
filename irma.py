@@ -300,7 +300,7 @@ class IrmaShelterDupes(BaseScraper):
             pair for pair in by_geohash.items()
             if len(pair[1]) > 1 and pair[0] != '00000000'
         ]
-        no_latlons = by_geohash['00000000']
+        no_latlons = by_geohash.get('00000000') or []
         return {
             'dupe_groups': [{
                 'geohash': dupe_group[0],
