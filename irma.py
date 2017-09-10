@@ -13,7 +13,7 @@ class BaseScraper(Scraper):
         'email': 'irma-scraper@example.com',
     }
     slack_botname = 'Irma Scraper'
-    slack_channel = '#shelters'
+    slack_channel = '#shelter_scraper_data'
 
 
 class FemaOpenShelters(BaseScraper):
