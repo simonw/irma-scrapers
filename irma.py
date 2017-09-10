@@ -26,7 +26,10 @@ class FemaOpenShelters(BaseScraper):
         message = []
 
         def name(row):
-            return '%s (%s County)' % (row['SHELTER_NAME'], row['COUNTY_PARISH'].title())
+            if 'COUNTY_PARISH' in row:
+                return '%s (%s County)' % (row['SHELTER_NAME'], row['COUNTY_PARISH'].title())
+            else:
+                return '%s (%s, %s)' % (row['SHELTER_NAME'], row['CITY'].title(), row['STATE'])
 
         for new_object in new_objects:
             message.append('Added shelter: %s' % name(new_object))
