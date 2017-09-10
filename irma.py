@@ -12,6 +12,8 @@ class BaseScraper(Scraper):
         'name': 'irma-scraper',
         'email': 'irma-scraper@example.com',
     }
+    slack_botname = 'Irma Scraper'
+    slack_channel = '#shelters'
 
 
 class FemaOpenShelters(BaseScraper):
@@ -24,8 +26,12 @@ class FemaOpenShelters(BaseScraper):
         message = []
         for new_object in new_objects:
             message.append('Added shelter: %s' % new_object['SHELTER_NAME'])
+        if new_objects:
+            message.append('')
         for removed_object in removed_objects:
             message.append('Removed shelter: %s' % removed_object['SHELTER_NAME'])
+        if removed_objects:
+            message.append('')
         num_updated = 0
         for new_object in new_data:
             old_object = [o for o in old_data if o['OBJECTID'] == new_object['OBJECTID']]
@@ -80,6 +86,7 @@ class ZeemapsScraper(BaseScraper):
 class IrmaShelters(BaseScraper):
     filepath = 'irma-shelters.json'
     url = 'https://irma-api.herokuapp.com/api/v1/shelters'
+    slack_channel = None
 
     def update_message(self, old_data, new_data):
         current_names = [n['shelter'] for n in new_data]
@@ -99,6 +106,8 @@ def update_message_from_names(current_names, previous_names, filepath):
     message = []
     for name in added_names:
         message.append('Added shelter: %s' % name)
+    if added_names:
+        message.append('')
     for name in removed_names:
         message.append('Removed shelter: %s' % name)
     body = '\n'.join(message)
@@ -171,12 +180,16 @@ class FloridaDisasterShelters(BaseScraper):
 
 if __name__ == '__main__':
     github_token = os.environ['GITHUB_API_TOKEN']
+    slack_token = os.environ['SLACK_TOKEN']
     scrapers = [
-        FemaOpenShelters(github_token),
-        FemaNSS(github_token),
-        IrmaShelters(github_token),
-        FloridaDisasterShelters(github_token),
-        ZeemapsScraper(github_token),
+        klass(github_token, slack_token)
+        for klass in (
+            FemaOpenShelters,
+            FemaNSS,
+            IrmaShelters,
+            FloridaDisasterShelters,
+            ZeemapsScraper,
+        )
     ]
     while True:
         for scraper in scrapers:

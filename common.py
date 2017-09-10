@@ -7,11 +7,36 @@ class Scraper(object):
     repo = None
     filepath = None
     committer = None
+    slack_channel = None
+    slack_botname = None
 
-    def __init__(self, github_token):
+    def __init__(self, github_token, slack_token=None):
         self.last_data = None
         self.last_sha = None
         self.github_token = github_token
+        self.slack_token = slack_token
+
+    def post_to_slack(self, message, commit_hash):
+        if not (self.slack_channel and self.slack_token):
+            return
+        headline = message.split('\n')[0]
+        body = message.split('\n', 1)[1]
+        github_url = 'https://github.com/%s/%s/commit/%s' % (
+            self.owner, self.repo, commit_hash
+        )
+        requests.post('https://slack.com/api/chat.postMessage', {
+            'token': self.slack_token,
+            'channel': self.slack_channel,
+            'attachments': json.dumps([{
+                'fallback': github_url,
+                'pretext': headline,
+                'title': '%s: %s' % (self.filepath, commit_hash[:8]),
+                'title_link': github_url,
+                'text': body.strip(),
+            }]),
+            'icon_emoji': ':robot_face:',
+            'username': self.slack_botname,
+        }).json()
 
     def create_message(self, new_data):
         return 'Created %s' % self.filepath
@@ -64,4 +89,7 @@ class Scraper(object):
         ).json()
         self.last_sha = updated['content']['sha']
         self.last_data = data
-        print updated['commit']['html_url']
+        commit_url = updated['commit']['html_url']
+        commit_hash = updated['commit']['sha']
+        self.post_to_slack(kwargs['message'], commit_hash)
+        print commit_url
