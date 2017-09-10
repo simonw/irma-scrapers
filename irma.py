@@ -93,8 +93,11 @@ class IrmaShelters(BaseScraper):
     slack_channel = None
 
     def update_message(self, old_data, new_data):
-        current_names = [n['shelter'] for n in new_data]
-        previous_names = [n['shelter'] for n in old_data]
+        def name(n):
+            return '%s (%s)' % (n['shelter'], n['county'])
+
+        current_names = [name(n) for n in new_data]
+        previous_names = [name(n) for n in old_data]
         return update_message_from_names(current_names, previous_names, self.filepath)
 
     def fetch_data(self):
