@@ -101,9 +101,36 @@ class IrmaShelters(BaseScraper):
         def name(n):
             return '%s (%s)' % (n['shelter'], n['county'])
 
-        current_names = [name(n) for n in new_data]
-        previous_names = [name(n) for n in old_data]
-        return update_message_from_names(current_names, previous_names, self.filepath)
+        current_ids = [n['id'] for n in new_data]
+        previous_ids = [n['id'] for n in old_data]
+
+        added_ids = [id for id in current_ids if id not in previous_ids]
+        removed_ids = [id for id in previous_ids if id not in current_ids]
+
+        message = []
+        for id in added_ids:
+            shelter = [n for n in new_data if n['id'] == id][0]
+            message.append('Added shelter: %s' % name(shelter))
+        if added_ids:
+            message.append('')
+        for id in removed_ids:
+            shelter = [n for n in old_data if n['id'] == id][0]
+            message.append('Removed shelter: %s' % name(shelter))
+        body = '\n'.join(message)
+        summary = []
+        if added_ids:
+            summary.append('%d shelter%s added' % (
+                len(added_ids), '' if len(added_ids) == 1 else 's',
+            ))
+        if removed_ids:
+            summary.append('%d shelter%s removed' % (
+                len(removed_ids), '' if len(removed_ids) == 1 else 's',
+            ))
+        if summary:
+            summary_text = self.filepath + ': ' + (', '.join(summary))
+        else:
+            summary_text = 'Updated %s' % self.filepath
+        return summary_text + '\n\n' + body
 
     def fetch_data(self):
         data = requests.get(self.url).json()
