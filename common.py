@@ -9,6 +9,7 @@ class Scraper(object):
     committer = None
     slack_channel = None
     slack_botname = None
+    test_mode = False
 
     def __init__(self, github_token, slack_token=None):
         self.last_data = None
@@ -83,6 +84,11 @@ class Scraper(object):
         else:
             kwargs['message'] = self.create_message(data)
             print 'Creating %s' % self.filepath
+
+        if self.test_mode:
+            print json.dumps(kwargs, indent=2)
+            return
+
         updated = requests.put(
             github_url,
             json=kwargs,

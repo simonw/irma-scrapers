@@ -1,5 +1,6 @@
 from common import Scraper
 from BeautifulSoup import BeautifulSoup as Soup
+import Geohash
 import requests
 import os
 import time
@@ -111,6 +112,132 @@ class IrmaShelters(BaseScraper):
         return shelters
 
 
+class IrmaShelterDupes(BaseScraper):
+    # Detect possible dupes in irma-api
+    filepath = 'irma-shelters-dupes.json'
+    url = 'https://irma-api.herokuapp.com/api/v1/shelters'
+
+    def update_message(self, old_data, new_data):
+        previous_geohashes = [
+            dupe_group['geohash'] for dupe_group in old_data['dupe_groups']
+        ]
+        current_geohashes = [
+            dupe_group['geohash'] for dupe_group in new_data['dupe_groups']
+        ]
+        added_geohashes = [
+            geohash for geohash in current_geohashes if geohash not in previous_geohashes
+        ]
+        removed_geohashes = [
+            geohash for geohash in previous_geohashes if geohash not in current_geohashes
+        ]
+
+        message = []
+        for geohash in added_geohashes:
+            dupe_group = [group for group in new_data['dupe_groups'] if group['geohash'] == geohash][0]
+            message.append('New potential duplicates:')
+            for shelter in dupe_group['shelters']:
+                message.append('  ' + shelter['name'])
+                message.append('    ' + shelter['address'])
+                message.append('    ' + shelter['google_maps'])
+
+        if added_geohashes and removed_geohashes:
+            message.append('')
+
+        for geohash in removed_geohashes:
+            dupe_group = [group for group in old_data['dupe_groups'] if group['geohash'] == geohash][0]
+            message.append('This previous duplicate looks to be resolved:')
+            for shelter in dupe_group['shelters']:
+                message.append('  ' + shelter['name'])
+                message.append('    ' + shelter['address'])
+                message.append('    ' + shelter['google_maps'])
+
+        current_no_latlon_names = [
+            shelter['name'] for shelter in new_data['no_latitude_longitude']
+        ]
+        previous_no_latlon_names = [
+            shelter['name'] for shelter in old_data['no_latitude_longitude']
+        ]
+
+        new_no_latlon = [
+            name for name in current_no_latlon_names
+            if name not in previous_no_latlon_names
+        ]
+        resolved_no_latlon = [
+            name for name in previous_no_latlon_names
+            if name not in current_no_latlon_names
+        ]
+
+        if new_no_latlon:
+            message.append('')
+            message.append('New shelters detected with no latitude/longitude:')
+            for name in new_no_latlon:
+                message.append('  ' + name)
+
+        if resolved_no_latlon:
+            message.append('')
+            message.append('Fixed shelters that had no latitude/longitude:')
+            for name in resolved_no_latlon:
+                message.append('  ' + name)
+
+        body = '\n'.join(message)
+        summary = []
+        if added_geohashes:
+            summary.append('%d new dupe%s detected' % (
+                len(added_geohashes), '' if len(added_geohashes) == 1 else 's',
+            ))
+        if removed_geohashes:
+            summary.append('%d dupe%s resolved' % (
+                len(removed_geohashes), '' if len(removed_geohashes) == 1 else 's',
+            ))
+        if new_no_latlon:
+            summary.append('%d new no-lat-lon shelters' % (
+                len(new_no_latlon), '' if len(new_no_latlon) == 1 else 's',
+            ))
+        if resolved_no_latlon:
+            summary.append('%d fixed no-lat-lon shelters' % (
+                len(resolved_no_latlon), '' if len(resolved_no_latlon) == 1 else 's',
+            ))
+        if summary:
+            summary_text = self.filepath + ': ' + (', '.join(summary))
+        else:
+            summary_text = 'Updated %s' % self.filepath
+        return summary_text + '\n\n' + body
+
+    def fetch_data(self):
+        data = requests.get(self.url).json()
+        shelters = data['shelters']
+        # Scan for potential dupes by lat/lon (using geohash)
+        by_geohash = {}
+        for shelter in shelters:
+            geohash = Geohash.encode(
+                shelter['latitude'],
+                shelter['longitude'],
+                precision=8
+            )
+            by_geohash.setdefault(geohash, []).append(shelter)
+        dupe_groups = [
+            pair for pair in by_geohash.items()
+            if len(pair[1]) > 1 and pair[0] != '00000000'
+        ]
+        no_latlons = by_geohash['00000000']
+        return {
+            'dupe_groups': [{
+                'geohash': dupe_group[0],
+                'shelters': [{
+                    'name': shelter['shelter'],
+                    'address': shelter['address'],
+                    'latitude': shelter['latitude'],
+                    'longitude': shelter['longitude'],
+                    'google_maps': 'https://www.google.com/maps/search/%(latitude)s,%(longitude)s' % shelter,
+                } for shelter in dupe_group[1]],
+            } for dupe_group in dupe_groups],
+            'no_latitude_longitude': [{
+                'name': shelter['shelter'],
+                'address': shelter['address'],
+            } for shelter in no_latlons]
+        }
+
+
 def update_message_from_names(current_names, previous_names, filepath):
     added_names = [n for n in current_names if n not in previous_names]
     removed_names = [n for n in previous_names if n not in current_names]
@@ -201,6 +328,7 @@ if __name__ == '__main__':
             FemaOpenShelters,
             # FemaNSS,
             IrmaShelters,
+            IrmaShelterDupes,
             FloridaDisasterShelters,
             ZeemapsScraper,
         )
