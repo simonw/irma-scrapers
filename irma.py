@@ -81,11 +81,41 @@ class IrmaShelters(BaseScraper):
     filepath = 'irma-shelters.json'
     url = 'https://irma-api.herokuapp.com/api/v1/shelters'
 
+    def update_message(self, old_data, new_data):
+        current_names = [n['shelter'] for n in new_data]
+        previous_names = [n['shelter'] for n in old_data]
+        return update_message_from_names(current_names, previous_names, self.filepath)
+
     def fetch_data(self):
         data = requests.get(self.url).json()
         shelters = data['shelters']
         shelters.sort(key=lambda s: s['shelter'])
         return shelters
+
+
+def update_message_from_names(current_names, previous_names, filepath):
+    added_names = [n for n in current_names if n not in previous_names]
+    removed_names = [n for n in previous_names if n not in current_names]
+    message = []
+    for name in added_names:
+        message.append('Added shelter %s' % name)
+    for name in removed_names:
+        message.append('Removed shelter %s' % name)
+    body = '\n'.join(message)
+    summary = []
+    if added_names:
+        summary.append('%d shelter%s added' % (
+            len(added_names), '' if len(added_names) == 1 else 's',
+        ))
+    if removed_names:
+        summary.append('%d shelter%s removed' % (
+            len(removed_names), '' if len(removed_names) == 1 else 's',
+        ))
+    if summary:
+        summary_text = filepath + ': ' + (', '.join(summary))
+    else:
+        summary_text = 'Updated %s' % filepath
+    return summary_text + '\n\n' + body
 
 
 def is_heading(tr):
@@ -110,28 +140,7 @@ class FloridaDisasterShelters(BaseScraper):
     def update_message(self, old_data, new_data):
         current_names = [n['name'] for n in new_data]
         previous_names = [n['name'] for n in old_data]
-        added_names = [n for n in current_names if n not in previous_names]
-        removed_names = [n for n in previous_names if n not in current_names]
-        message = []
-        for name in added_names:
-            message.append('Added shelter %s' % name)
-        for name in removed_names:
-            message.append('Removed shelter %s' % name)
-        body = '\n'.join(message)
-        summary = []
-        if added_names:
-            summary.append('%d shelter%s added' % (
-                len(added_names), '' if len(added_names) == 1 else 's',
-            ))
-        if removed_names:
-            summary.append('%d shelter%s removed' % (
-                len(removed_names), '' if len(removed_names) == 1 else 's',
-            ))
-        if summary:
-            summary_text = self.filepath + ': ' + (', '.join(summary))
-        else:
-            summary_text = 'Updated %s' % self.filepath
-        return summary_text + '\n\n' + body
+        return update_message_from_names(current_names, previous_names, self.filepath)
 
     def fetch_data(self):
         r = requests.get(self.url)
