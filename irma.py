@@ -8,6 +8,7 @@ from BeautifulSoup import BeautifulSoup as Soup
 import requests
 import os
 import time
+import json
 
 
 class FemaOpenShelters(BaseScraper):
@@ -83,6 +84,30 @@ class ZeemapsScraper(BaseScraper):
         data = requests.get(self.url).json()
         data.sort(key=lambda d: d['nm'])
         return data
+
+
+class FplStormOutages(BaseScraper):
+    filepath = 'fpl-storm-outages.json'
+    url = 'https://www.fplmaps.com/data/storm-outages.js'
+    slack_channel = None
+
+    def fetch_data(self):
+        content = requests.get(self.url).content
+        # Stripe the 'define(' and ');'
+        if content.startswith('define('):
+            content = content.split('define(')[1]
+        if content.endswith(');'):
+            content = content.rsplit(');', 1)[0]
+        return json.loads(content)
+
+
+class FplCountyOutages(BaseScraper):
+    filepath = 'fpl-county-outages.json'
+    url = 'https://www.fplmaps.com/customer/outage/CountyOutages.json'
+    slack_channel = None
+
+    def fetch_data(self):
+        return requests.get(self.url).json()
 
 
 class PascoCounty(BaseScraper):
@@ -364,9 +389,11 @@ if __name__ == '__main__':
             CrowdSourceRescue,
             LedgerPolkCounty,
             HernandoCountyShelters,
+            FplStormOutages,
+            FplCountyOutages,
         )
     ]
     while True:
         for scraper in scrapers:
             scraper.scrape_and_store()
-        time.sleep(60)
+        time.sleep(120)
