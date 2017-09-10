@@ -355,7 +355,7 @@ if __name__ == '__main__':
         klass(github_token, slack_token)
         for klass in (
             FemaOpenShelters,
-            # FemaNSS,
+            FemaNSS,
             IrmaShelters,
             IrmaShelterDupes,
             FloridaDisasterShelters,
