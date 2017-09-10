@@ -20,7 +20,10 @@ class Scraper(object):
         if not (self.slack_channel and self.slack_token):
             return
         headline = message.split('\n')[0]
-        body = message.split('\n', 1)[1]
+        try:
+            body = message.split('\n', 1)[1]
+        except IndexError:
+            body = ''
         github_url = 'https://github.com/%s/%s/commit/%s' % (
             self.owner, self.repo, commit_hash
         )
