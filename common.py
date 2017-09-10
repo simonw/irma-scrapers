@@ -62,7 +62,14 @@ class Scraper(object):
         # We need to store the data
         if not self.last_data:
             # Check and see if it exists yet
-            response = requests.get(github_url)
+            response = requests.get(
+                github_url,
+                headers={
+                    'Authorization': 'token %s' % self.github_token
+                }
+            )
+            if response.status_code == 403 and 'rate-limiting' in response.json().get('documentation_url', ''):
+                raise Exception('Oh no it looks like we are rate limited')
             if response.status_code == 200:
                 self.last_sha = response.json()['sha']
                 self.last_data = json.loads(response.json()['content'].decode('base64'))
