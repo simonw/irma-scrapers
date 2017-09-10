@@ -356,7 +356,7 @@ class IrmaShelterDupes(BaseScraper):
             geohash = Geohash.encode(
                 shelter['latitude'],
                 shelter['longitude'],
-                precision=8
+                precision=7
             )
             by_geohash.setdefault(geohash, []).append(shelter)
         dupe_groups = [
