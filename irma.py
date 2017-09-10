@@ -24,12 +24,16 @@ class FemaOpenShelters(BaseScraper):
         new_objects = [o for o in new_data if not any(o2 for o2 in old_data if o2['OBJECTID'] == o['OBJECTID'])]
         removed_objects = [o for o in old_data if not any(o2 for o2 in new_data if o2['OBJECTID'] == o['OBJECTID'])]
         message = []
+
+        def name(row):
+            return '%s (%s County)' % (row['SHELTER_NAME'], row['COUNTY_PARISH'].title())
+
         for new_object in new_objects:
-            message.append('Added shelter: %s' % new_object['SHELTER_NAME'])
+            message.append('Added shelter: %s' % name(new_object))
         if new_objects:
             message.append('')
         for removed_object in removed_objects:
-            message.append('Removed shelter: %s' % removed_object['SHELTER_NAME'])
+            message.append('Removed shelter: %s' % name(removed_object))
         if removed_objects:
             message.append('')
         num_updated = 0
@@ -39,7 +43,7 @@ class FemaOpenShelters(BaseScraper):
                 continue
             old_object = old_object[0]
             if new_object != old_object:
-                message.append('Updated shelter: %s' % new_object['SHELTER_NAME'])
+                message.append('Updated shelter: %s' % name(new_object))
                 num_updated += 1
         body = '\n'.join(message)
         summary = []
