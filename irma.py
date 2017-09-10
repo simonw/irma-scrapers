@@ -158,8 +158,11 @@ class FloridaDisasterShelters(BaseScraper):
     url = 'http://www.floridadisaster.org/shelters/summary.aspx'
 
     def update_message(self, old_data, new_data):
-        current_names = [n['name'] for n in new_data]
-        previous_names = [n['name'] for n in old_data]
+        def name(n):
+            return '%s (%s County)' % (n['name'], n['county'])
+
+        current_names = [name(n) for n in new_data]
+        previous_names = [name(n) for n in old_data]
         message = update_message_from_names(current_names, previous_names, self.filepath)
         message += '\n\nChange detected on %s' % self.url
         return message
