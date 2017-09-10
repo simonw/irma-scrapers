@@ -175,6 +175,8 @@ class IrmaShelterDupes(BaseScraper):
         # Scan for potential dupes by lat/lon (using geohash)
         by_geohash = {}
         for shelter in shelters:
+            if shelter['id'] in IGNORE_DUPE_IDS:
+                continue
             geohash = Geohash.encode(
                 shelter['latitude'],
                 shelter['longitude'],
@@ -188,10 +190,6 @@ class IrmaShelterDupes(BaseScraper):
                 len(pair[1]) > 1
                 # Group is not invalid lat/lon
                 and pair[0] != '00000000'
-                # No member of the group is in IGNORE_DUPE_IDS
-                and not set(
-                    [s['id'] for s in pair[1]]
-                ).intersection(IGNORE_DUPE_IDS)
             )
         ]
         no_latlons = by_geohash.get('00000000') or []
