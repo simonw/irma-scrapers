@@ -123,6 +123,44 @@ class PascoCounty(BaseScraper):
         return data
 
 
+class LedgerPolkCounty(BaseScraper):
+    filepath = 'ledger-polk-county.json'
+    url = 'http://www.ledgerdata.com/hurricane-guide/shelter/'
+    test_mode = True
+
+    def create_message(self, new_data):
+        return self.update_message([], new_data, verb='Created')
+
+    def update_message(self, old_data, new_data, verb='Updated'):
+        def name(n):
+            return '%s (Polk County FL)' % n['name']
+
+        current_names = [name(n) for n in new_data]
+        previous_names = [name(n) for n in old_data]
+        message = update_message_from_names(
+            current_names,
+            previous_names,
+            self.filepath,
+            verb=verb
+        )
+        message += '\n\nChange detected on http://www.ledgerdata.com/hurricane-guide/shelter/'
+        return message
+
+    def fetch_data(self):
+        s = Soup(requests.get(self.url).content)
+        trs = s.find('table').findAll('tr')[1:]
+        shelters = []
+        for tr in trs:
+            tds = tr.findAll('td')
+            shelters.append({
+                'name': tds[1].getText(),
+                'url': 'http://www.ledgerdata.com/' + tds[1].find('a')['href'],
+                'city': tds[2].getText(),
+                'type': tds[3].getText(),
+            })
+        return shelters
+
+
 class IrmaShelters(BaseScraper):
     filepath = 'irma-shelters.json'
     url = 'https://irma-api.herokuapp.com/api/v1/shelters'
@@ -436,6 +474,7 @@ if __name__ == '__main__':
             ZeemapsScraper,
             PascoCounty,
             CrowdSourceRescue,
+            LedgerPolkCounty,
         )
     ]
     while True:
