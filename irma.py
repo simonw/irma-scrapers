@@ -140,7 +140,9 @@ class FloridaDisasterShelters(BaseScraper):
     def update_message(self, old_data, new_data):
         current_names = [n['name'] for n in new_data]
         previous_names = [n['name'] for n in old_data]
-        return update_message_from_names(current_names, previous_names, self.filepath)
+        message = update_message_from_names(current_names, previous_names, self.filepath)
+        message += '\n\nChange detected on %s' % self.url
+        return message
 
     def fetch_data(self):
         r = requests.get(self.url)
