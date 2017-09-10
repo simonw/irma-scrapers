@@ -190,11 +190,11 @@ class IrmaShelterDupes(BaseScraper):
                 len(removed_geohashes), '' if len(removed_geohashes) == 1 else 's',
             ))
         if new_no_latlon:
-            summary.append('%d new no-lat-lon shelters' % (
+            summary.append('%d new no-lat-lon shelter%s' % (
                 len(new_no_latlon), '' if len(new_no_latlon) == 1 else 's',
             ))
         if resolved_no_latlon:
-            summary.append('%d fixed no-lat-lon shelters' % (
+            summary.append('%d fixed no-lat-lon shelter%s' % (
                 len(resolved_no_latlon), '' if len(resolved_no_latlon) == 1 else 's',
             ))
         if summary:
