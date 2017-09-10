@@ -92,6 +92,37 @@ class ZeemapsScraper(BaseScraper):
         return data
 
 
+class PascoCounty(BaseScraper):
+    # From http://www.pascocountyfl.net/index.aspx?NID=2816
+    # in particular this iframe:
+    # https://secure.pascocountyfl.net/sheltersdisplay
+    filepath = 'pascocountyfl.json'
+    url = 'https://secure.pascocountyfl.net/SheltersDisplay/Home/GetShelterInfo'
+
+    def create_message(self, new_data):
+        return self.update_message([], new_data, verb='Created')
+
+    def update_message(self, old_data, new_data, verb='Updated'):
+        def name(n):
+            return '%s (Pasco County FL)' % n['Name']
+
+        current_names = [name(n) for n in new_data]
+        previous_names = [name(n) for n in old_data]
+        message = update_message_from_names(
+            current_names,
+            previous_names,
+            self.filepath,
+            verb=verb
+        )
+        message += '\n\nChange detected on http://www.pascocountyfl.net/index.aspx?NID=2816'
+        return message
+
+    def fetch_data(self):
+        data = requests.post(self.url).json()
+        data.sort(key=lambda d: d['Name'])
+        return data
+
+
 class IrmaShelters(BaseScraper):
     filepath = 'irma-shelters.json'
     url = 'https://irma-api.herokuapp.com/api/v1/shelters'
@@ -164,8 +195,11 @@ class IrmaShelterDupes(BaseScraper):
             message.append('New potential duplicates:')
             for shelter in dupe_group['shelters']:
                 message.append('  ' + shelter['name'])
-                message.append('    ' + shelter['address'])
+                if shelter.get('address'):
+                    message.append('    ' + shelter['address'])
                 message.append('    ' + shelter['google_maps'])
+                message.append('    ' + shelter['view_url'])
+                message.append('')
 
         if added_geohashes and removed_geohashes:
             message.append('')
@@ -175,36 +209,56 @@ class IrmaShelterDupes(BaseScraper):
             message.append('This previous duplicate looks to be resolved:')
             for shelter in dupe_group['shelters']:
                 message.append('  ' + shelter['name'])
-                message.append('    ' + shelter['address'])
+                if shelter.get('address'):
+                    message.append('    ' + shelter['address'])
                 message.append('    ' + shelter['google_maps'])
+                message.append('    ' + shelter['view_url'])
+                message.append('')
 
-        current_no_latlon_names = [
-            shelter['name'] for shelter in new_data['no_latitude_longitude']
+        current_no_latlon_ids = [
+            shelter['id'] for shelter in new_data['no_latitude_longitude']
         ]
-        previous_no_latlon_names = [
-            shelter['name'] for shelter in old_data['no_latitude_longitude']
-        ]
-
-        new_no_latlon = [
-            name for name in current_no_latlon_names
-            if name not in previous_no_latlon_names
-        ]
-        resolved_no_latlon = [
-            name for name in previous_no_latlon_names
-            if name not in current_no_latlon_names
+        # Older data in our repo doesn't have the 'id' property, so we
+        # have to allow it to be None here
+        previous_no_latlon_ids = [
+            shelter.get('id') for shelter in old_data['no_latitude_longitude']
         ]
 
-        if new_no_latlon:
+        new_no_latlon_ids = [
+            id for id in current_no_latlon_ids
+            if id not in previous_no_latlon_ids
+        ]
+        resolved_no_latlon_ids = [
+            id for id in previous_no_latlon_ids
+            if id not in current_no_latlon_ids
+            and id is not None
+        ]
+
+        if new_no_latlon_ids:
             message.append('')
             message.append('New shelters detected with no latitude/longitude:')
-            for name in new_no_latlon:
-                message.append('  ' + name)
+            for id in new_no_latlon_ids:
+                shelter = [
+                    s for s in new_data['no_latitude_longitude']
+                    if s['id'] == id
+                ][0]
+                message.append('    ' + shelter['name'])
+                if shelter.get('address'):
+                    message.append('    ' + shelter['address'])
+                message.append('    ' + shelter['view_url'])
+                message.append('')
 
-        if resolved_no_latlon:
+        if resolved_no_latlon_ids:
             message.append('')
             message.append('Fixed shelters that had no latitude/longitude:')
-            for name in resolved_no_latlon:
-                message.append('  ' + name)
+            for id in resolved_no_latlon_ids:
+                shelter = [
+                    s for s in old_data['no_latitude_longitude']
+                    if s['id'] == id
+                ][0]
+                message.append('  ' + shelter['name'])
+                message.append('  ' + (shelter.get('address') or ''))
+                message.append('  ' + shelter['view_url'])
 
         body = '\n'.join(message)
         summary = []
@@ -216,13 +270,13 @@ class IrmaShelterDupes(BaseScraper):
             summary.append('%d dupe%s resolved' % (
                 len(removed_geohashes), '' if len(removed_geohashes) == 1 else 's',
             ))
-        if new_no_latlon:
+        if new_no_latlon_ids:
             summary.append('%d new no-lat-lon shelter%s' % (
-                len(new_no_latlon), '' if len(new_no_latlon) == 1 else 's',
+                len(new_no_latlon_ids), '' if len(new_no_latlon_ids) == 1 else 's',
             ))
-        if resolved_no_latlon:
+        if resolved_no_latlon_ids:
             summary.append('%d fixed no-lat-lon shelter%s' % (
-                len(resolved_no_latlon), '' if len(resolved_no_latlon) == 1 else 's',
+                len(resolved_no_latlon_ids), '' if len(resolved_no_latlon_ids) == 1 else 's',
             ))
         if summary:
             summary_text = self.filepath + ': ' + (', '.join(summary))
@@ -251,21 +305,25 @@ class IrmaShelterDupes(BaseScraper):
             'dupe_groups': [{
                 'geohash': dupe_group[0],
                 'shelters': [{
+                    'id': shelter['id'],
                     'name': shelter['shelter'],
                     'address': shelter['address'],
                     'latitude': shelter['latitude'],
                     'longitude': shelter['longitude'],
                     'google_maps': 'https://www.google.com/maps/search/%(latitude)s,%(longitude)s' % shelter,
+                    'view_url': 'https://irma-api.herokuapp.com/shelters/%s' % shelter['id'],
                 } for shelter in dupe_group[1]],
             } for dupe_group in dupe_groups],
             'no_latitude_longitude': [{
+                'id': shelter['id'],
                 'name': shelter['shelter'],
                 'address': shelter['address'],
+                'view_url': 'https://irma-api.herokuapp.com/shelters/%s' % shelter['id'],
             } for shelter in no_latlons]
         }
 
 
-def update_message_from_names(current_names, previous_names, filepath):
+def update_message_from_names(current_names, previous_names, filepath, verb='Updated'):
     added_names = [n for n in current_names if n not in previous_names]
     removed_names = [n for n in previous_names if n not in current_names]
     message = []
@@ -288,7 +346,7 @@ def update_message_from_names(current_names, previous_names, filepath):
     if summary:
         summary_text = filepath + ': ' + (', '.join(summary))
     else:
-        summary_text = 'Updated %s' % filepath
+        summary_text = '%s %s' % (verb, filepath)
     return summary_text + '\n\n' + body
 
 
@@ -358,6 +416,7 @@ if __name__ == '__main__':
             IrmaShelterDupes,
             FloridaDisasterShelters,
             ZeemapsScraper,
+            PascoCounty,
         )
     ]
     while True:
