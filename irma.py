@@ -23,9 +23,9 @@ class FemaOpenShelters(BaseScraper):
         removed_objects = [o for o in old_data if not any(o2 for o2 in new_data if o2['OBJECTID'] == o['OBJECTID'])]
         message = []
         for new_object in new_objects:
-            message.append('Added shelter %s' % new_object['SHELTER_NAME'])
+            message.append('Added shelter: %s' % new_object['SHELTER_NAME'])
         for removed_object in removed_objects:
-            message.append('Removed shelter %s' % removed_object['SHELTER_NAME'])
+            message.append('Removed shelter: %s' % removed_object['SHELTER_NAME'])
         num_updated = 0
         for new_object in new_data:
             old_object = [o for o in old_data if o['OBJECTID'] == new_object['OBJECTID']]
@@ -98,9 +98,9 @@ def update_message_from_names(current_names, previous_names, filepath):
     removed_names = [n for n in previous_names if n not in current_names]
     message = []
     for name in added_names:
-        message.append('Added shelter %s' % name)
+        message.append('Added shelter: %s' % name)
     for name in removed_names:
-        message.append('Removed shelter %s' % name)
+        message.append('Removed shelter: %s' % name)
     body = '\n'.join(message)
     summary = []
     if added_names:
