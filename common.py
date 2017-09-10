@@ -97,7 +97,7 @@ class Scraper(object):
             print 'Creating %s' % self.filepath
 
         if self.test_mode:
-            print json.dumps(kwargs, indent=2)
+            print kwargs['message']
             return
 
         response = requests.put(
