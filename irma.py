@@ -18,6 +18,43 @@ class FemaOpenShelters(BaseScraper):
     filepath = 'fema-open-shelters.json'
     url = 'https://gis.fema.gov/REST/services/NSS/OpenShelters/MapServer/0/query?f=json&returnGeometry=true&spatialRel=esriSpatialRelIntersects&geometry=%7B%22xmin%22%3A-10018754.171396945%2C%22ymin%22%3A2504688.5428529754%2C%22xmax%22%3A-7514065.628548954%2C%22ymax%22%3A5009377.085700965%2C%22spatialReference%22%3A%7B%22wkid%22%3A102100%7D%7D&geometryType=esriGeometryEnvelope&inSR=102100&outFields=*&outSR=102100'
 
+    def update_message(self, old_data, new_data):
+        new_objects = [o for o in new_data if not any(o2 for o2 in old_data if o2['OBJECTID'] == o['OBJECTID'])]
+        removed_objects = [o for o in old_data if not any(o2 for o2 in new_data if o2['OBJECTID'] == o['OBJECTID'])]
+        message = []
+        for new_object in new_objects:
+            message.append('Added shelter %s' % new_object['SHELTER_NAME'])
+        for removed_object in removed_objects:
+            message.append('Removed shelter %s' % removed_object['SHELTER_NAME'])
+        num_updated = 0
+        for new_object in new_data:
+            old_object = [o for o in old_data if o['OBJECTID'] == new_object['OBJECTID']]
+            if not old_object:
+                continue
+            old_object = old_object[0]
+            if new_object != old_object:
+                message.append('Updated shelter: %s' % new_object['SHELTER_NAME'])
+                num_updated += 1
+        body = '\n'.join(message)
+        summary = []
+        if new_objects:
+            summary.append('%d shelter%s added' % (
+                len(new_objects), '' if len(new_objects) == 1 else 's',
+            ))
+        if removed_objects:
+            summary.append('%d shelter%s removed' % (
+                len(removed_objects), '' if len(removed_objects) == 1 else 's',
+            ))
+        if num_updated:
+            summary.append('%d shelter%s updated' % (
+                num_updated, '' if num_updated == 1 else 's',
+            ))
+        if summary:
+            summary_text = self.filepath + ': ' + (', '.join(summary))
+        else:
+            summary_text = 'Updated %s' % self.filepath
+        return summary_text + '\n\n' + body
+
     def fetch_data(self):
         data = requests.get(self.url).json()
         shelters = [feature['attributes'] for feature in data['features']]
@@ -69,6 +106,32 @@ def is_county_heading(tr):
 class FloridaDisasterShelters(BaseScraper):
     filepath = 'florida-shelters.json'
     url = 'http://www.floridadisaster.org/shelters/summary.aspx'
+
+    def update_message(self, old_data, new_data):
+        current_names = [n['name'] for n in new_data]
+        previous_names = [n['name'] for n in old_data]
+        added_names = [n for n in current_names if n not in previous_names]
+        removed_names = [n for n in previous_names if n not in current_names]
+        message = []
+        for name in added_names:
+            message.append('Added shelter %s' % name)
+        for name in removed_names:
+            message.append('Removed shelter %s' % name)
+        body = '\n'.join(message)
+        summary = []
+        if added_names:
+            summary.append('%d shelter%s added' % (
+                len(added_names), '' if len(added_names) == 1 else 's',
+            ))
+        if removed_names:
+            summary.append('%d shelter%s removed' % (
+                len(removed_names), '' if len(removed_names) == 1 else 's',
+            ))
+        if summary:
+            summary_text = self.filepath + ': ' + (', '.join(summary))
+        else:
+            summary_text = 'Updated %s' % self.filepath
+        return summary_text + '\n\n' + body
 
     def fetch_data(self):
         r = requests.get(self.url)

@@ -13,6 +13,12 @@ class Scraper(object):
         self.last_sha = None
         self.github_token = github_token
 
+    def create_message(self, new_data):
+        return 'Created %s' % self.filepath
+
+    def update_message(self, old_data, new_data):
+        return 'Updated %s' % self.filepath
+
     def fetch_data(self):
         return []
 
@@ -38,15 +44,16 @@ class Scraper(object):
 
         kwargs = {
             'path': self.filepath,
-            'message': 'Updating %s' % self.filepath,
             'content': json.dumps(data, indent=2).encode('base64'),
         }
         if self.committer:
             kwargs['committer'] = self.committer
         if self.last_sha:
             kwargs['sha'] = self.last_sha
+            kwargs['message'] = self.update_message(self.last_data, data)
             print 'Updating %s' % self.filepath
         else:
+            kwargs['message'] = self.create_message(data)
             print 'Creating %s' % self.filepath
         updated = requests.put(
             github_url,
@@ -57,3 +64,4 @@ class Scraper(object):
         ).json()
         self.last_sha = updated['content']['sha']
         self.last_data = data
+        print updated['commit']['html_url']
