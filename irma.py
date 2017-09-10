@@ -386,6 +386,76 @@ class IrmaShelterDupes(BaseScraper):
         }
 
 
+class HernandoCountyShelters(BaseScraper):
+    filepath = 'hernando-county.json'
+    url = 'http://www.hernandocounty.us/em/shelter-information'
+
+    def create_message(self, new_data):
+        return self.update_message([], new_data, verb='Created')
+
+    def update_message(self, old_data, new_data, verb='Updated'):
+        current_names = [n['name'] for n in new_data]
+        previous_names = [n['name'] for n in old_data]
+
+        added_names = [name for name in current_names if name not in previous_names]
+        removed_names = [name for name in previous_names if name not in current_names]
+
+        message = []
+        for name in added_names:
+            shelter = [n for n in new_data if n['name'] == name][0]
+            message.append('Added shelter: %s, Hernando County' % (
+                shelter['name']
+            ))
+            message.append('  %s, %s' % (
+                shelter['type'], shelter['status']
+            ))
+            message.append('  %s' % shelter['address'])
+        if added_names and removed_names:
+            message.append('')
+        for name in removed_names:
+            shelter = [n for n in old_data if n['name'] == name][0]
+            message.append('Removed shelter: %s, Hernando County' % (
+                shelter['name']
+            ))
+        body = '\n'.join(message)
+        summary = []
+        if added_names:
+            summary.append('%d shelter%s added' % (
+                len(added_names), '' if len(added_names) == 1 else 's',
+            ))
+        if removed_names:
+            summary.append('%d shelter%s removed' % (
+                len(removed_names), '' if len(removed_names) == 1 else 's',
+            ))
+        if summary:
+            summary_text = '%s %s: %s' % (
+                verb, self.filepath, (', '.join(summary))
+            )
+        else:
+            summary_text = '%s %s' % (verb, self.filepath)
+        return '%s\n\n%s\n\nChange detected on %s' % (
+            summary_text, body, self.url
+        )
+
+    def fetch_data(self):
+        s = Soup(requests.get(self.url).content)
+        shelters = []
+        for tr in s.find('table').findAll('tr'):
+            tds = tr.findAll('td')
+            img = tds[1].find('img')
+            if img is not None:
+                shelter_type = img['alt'].title()
+            else:
+                shelter_type = 'General'
+            shelters.append({
+                'name': tds[2].getText(),
+                'type': shelter_type,
+                'address': tds[3].getText(),
+                'status': tds[4].getText(),
+            })
+        return shelters
+
+
 def update_message_from_names(current_names, previous_names, filepath, verb='Updated'):
     added_names = [n for n in current_names if n not in previous_names]
     removed_names = [n for n in previous_names if n not in current_names]
@@ -500,6 +570,7 @@ if __name__ == '__main__':
             PascoCounty,
             CrowdSourceRescue,
             LedgerPolkCounty,
+            HernandoCountyShelters,
         )
     ]
     while True:
