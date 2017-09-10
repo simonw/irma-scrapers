@@ -60,7 +60,7 @@ class Scraper(object):
             self.owner, self.repo, self.filepath
         )
         # We need to store the data
-        if not self.last_data:
+        if not self.last_data or not self.last_sha:
             # Check and see if it exists yet
             response = requests.get(
                 github_url,
@@ -73,6 +73,10 @@ class Scraper(object):
             if response.status_code == 200:
                 self.last_sha = response.json()['sha']
                 self.last_data = json.loads(response.json()['content'].decode('base64'))
+            elif response.status_code == 404:
+                pass
+            else:
+                raise Exception(str(response.status_code) + ': ' + response.content)
 
         if self.last_data == data:
             print '%s: Nothing changed' % self.filepath
@@ -96,13 +100,15 @@ class Scraper(object):
             print json.dumps(kwargs, indent=2)
             return
 
-        updated = requests.put(
+        response = requests.put(
             github_url,
             json=kwargs,
             headers={
                 'Authorization': 'token %s' % self.github_token
             }
-        ).json()
+        )
+        assert str(response.status_code).startswith('2'), response.content
+        updated = response.json()
         self.last_sha = updated['content']['sha']
         self.last_data = data
         commit_url = updated['commit']['html_url']
