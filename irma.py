@@ -83,6 +83,7 @@ class FemaNSS(FemaOpenShelters):
 class ZeemapsScraper(BaseScraper):
     url = 'https://zeemaps.com/emarkers?g=2682928'
     filepath = 'zeemaps-2682928.json'
+    slack_channel = None
 
     def fetch_data(self):
         data = requests.get(self.url).json()
