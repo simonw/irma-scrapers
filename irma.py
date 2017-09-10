@@ -404,6 +404,24 @@ class FloridaDisasterShelters(BaseScraper):
         return shelters
 
 
+class CrowdSourceRescue(BaseScraper):
+    filepath = 'crowdsourcerescue.json'
+    owner = 'simonw'
+    repo = 'private-irma-data'
+    slack_channel = None
+    url = 'https://crowdsourcerescue.com/rescuees/searchApi/'
+
+    def fetch_data(self):
+        return requests.post(self.url, {
+            'needstring': '',
+            'lat_min': '23.882475192722612',
+            'lat_max': '29.761185051094046',
+            'lng_min': '-86.76083325000002',
+            'lng_max': '-77.97177075000002',
+            'status': '0',
+        }).json()
+
+
 if __name__ == '__main__':
     github_token = os.environ['GITHUB_API_TOKEN']
     slack_token = os.environ['SLACK_TOKEN']
@@ -417,6 +435,7 @@ if __name__ == '__main__':
             FloridaDisasterShelters,
             ZeemapsScraper,
             PascoCounty,
+            CrowdSourceRescue,
         )
     ]
     while True:
