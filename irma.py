@@ -126,25 +126,50 @@ class PascoCounty(BaseScraper):
 class LedgerPolkCounty(BaseScraper):
     filepath = 'ledger-polk-county.json'
     url = 'http://www.ledgerdata.com/hurricane-guide/shelter/'
-    test_mode = True
 
     def create_message(self, new_data):
         return self.update_message([], new_data, verb='Created')
 
     def update_message(self, old_data, new_data, verb='Updated'):
-        def name(n):
-            return '%s (Polk County FL)' % n['name']
+        current_names = [n['name'] for n in new_data]
+        previous_names = [n['name'] for n in old_data]
 
-        current_names = [name(n) for n in new_data]
-        previous_names = [name(n) for n in old_data]
-        message = update_message_from_names(
-            current_names,
-            previous_names,
-            self.filepath,
-            verb=verb
+        added_names = [name for name in current_names if name not in previous_names]
+        removed_names = [name for name in previous_names if name not in current_names]
+
+        message = []
+        for name in added_names:
+            shelter = [n for n in new_data if n['name'] == name][0]
+            message.append('Added shelter: %s, %s' % (
+                shelter['name'], shelter['city']
+            ))
+            message.append('  %s' % shelter['url'])
+        if added_names and removed_names:
+            message.append('')
+        for name in removed_names:
+            shelter = [n for n in old_data if n['name'] == name][0]
+            message.append('Removed shelter: %s, %s' % (
+                shelter['name'], shelter['city']
+            ))
+        body = '\n'.join(message)
+        summary = []
+        if added_names:
+            summary.append('%d shelter%s added' % (
+                len(added_names), '' if len(added_names) == 1 else 's',
+            ))
+        if removed_names:
+            summary.append('%d shelter%s removed' % (
+                len(removed_names), '' if len(removed_names) == 1 else 's',
+            ))
+        if summary:
+            summary_text = '%s %s: %s' % (
+                verb, self.filepath, (', '.join(summary))
+            )
+        else:
+            summary_text = '%s %s' % (verb, self.filepath)
+        return '%s\n\n%s\n\nChange detected on %s' % (
+            summary_text, body, self.url
         )
-        message += '\n\nChange detected on http://www.ledgerdata.com/hurricane-guide/shelter/'
-        return message
 
     def fetch_data(self):
         s = Soup(requests.get(self.url).content)
