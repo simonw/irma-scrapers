@@ -30,6 +30,16 @@ class FemaNSS(FemaOpenShelters):
     url = 'https://gis.fema.gov/REST/services/NSS/FEMA_NSS/MapServer/0/query?f=json&returnGeometry=true&spatialRel=esriSpatialRelIntersects&geometry=%7B%22xmin%22%3A-10018754.171396945%2C%22ymin%22%3A2504688.5428529754%2C%22xmax%22%3A-7514065.628548954%2C%22ymax%22%3A5009377.085700965%2C%22spatialReference%22%3A%7B%22wkid%22%3A102100%7D%7D&geometryType=esriGeometryEnvelope&inSR=102100&outFields=*&outSR=102100'
 
 
+class ZeemapsScraper(BaseScraper):
+    url = 'https://zeemaps.com/emarkers?g=2682928'
+    filepath = 'zeemaps-2682928.json'
+
+    def fetch_data(self):
+        data = requests.get(self.url).json()
+        data.sort(key=lambda d: d['nm'])
+        return data
+
+
 class IrmaShelters(BaseScraper):
     filepath = 'irma-shelters.json'
     url = 'https://irma-api.herokuapp.com/api/v1/shelters'
@@ -92,6 +102,7 @@ if __name__ == '__main__':
         FemaNSS(github_token),
         IrmaShelters(github_token),
         FloridaDisasterShelters(github_token),
+        ZeemapsScraper(github_token),
     ]
     while True:
         for scraper in scrapers:
