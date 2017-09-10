@@ -8,6 +8,10 @@ import time
 class BaseScraper(Scraper):
     owner = 'simonw'
     repo = 'irma-scraped-data'
+    committer = {
+        'name': 'irma-scraper',
+        'email': 'irma-scraper@example.com',
+    }
 
 
 class FemaOpenShelters(BaseScraper):

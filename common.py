@@ -6,6 +6,7 @@ class Scraper(object):
     owner = None
     repo = None
     filepath = None
+    committer = None
 
     def __init__(self, github_token):
         self.last_data = None
@@ -40,6 +41,8 @@ class Scraper(object):
             'message': 'Updating %s' % self.filepath,
             'content': json.dumps(data, indent=2).encode('base64'),
         }
+        if self.committer:
+            kwargs['committer'] = self.committer
         if self.last_sha:
             kwargs['sha'] = self.last_sha
             print 'Updating %s' % self.filepath
