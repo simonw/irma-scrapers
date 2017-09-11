@@ -18,6 +18,45 @@ import json
 import datetime
 
 
+class SouthCarolinaShelters(BaseScraper):
+    url = 'http://scemd.org/ShelterStatus.html'
+    filepath = 'scemd-shelters.json'
+
+    def create_message(self, new_data):
+        return self.update_message([], new_data, verb='Created')
+
+    def update_message(self, old_data, new_data, verb='Updated'):
+        def name(n):
+            return '%s (%s County, SC)' % (
+                n['Shelter Name'], n['County']
+            )
+
+        current_names = [name(n) for n in new_data]
+        previous_names = [name(n) for n in old_data]
+        message = update_message_from_names(
+            current_names,
+            previous_names,
+            self.filepath,
+            verb=verb
+        )
+        message += '\nChange detected on %s' % self.url
+        return message
+
+    def fetch_data(self):
+        s = Soup(requests.get(self.url).content)
+        table = s.find('table')
+        trs = table.findAll('tr')
+        headings = [
+            th.getText()
+            for th in trs[0].findAll('th')
+        ]
+        shelters = []
+        for tr in trs[1:]:
+            content = [td.getText() for td in tr.findAll('td')]
+            shelters.append(dict(zip(headings, content)))
+        return shelters
+
+
 class ZeemapsScraper(BaseScraper):
     url = 'https://zeemaps.com/emarkers?g=2682928'
     filepath = 'zeemaps-2682928.json'
@@ -328,6 +367,7 @@ if __name__ == '__main__':
     scrapers = [
         klass(github_token, slack_token)
         for klass in (
+            SouthCarolinaShelters,
             FemaOpenShelters,
             FemaNSS,
             IrmaShelters,
