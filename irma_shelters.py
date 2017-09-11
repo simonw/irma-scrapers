@@ -7,6 +7,8 @@ IGNORE_DUPE_IDS = {
     442, # Amelia Earhart Elementary
 }
 
+GEOHASH_PRECISION = 7
+
 
 class IrmaShelters(BaseScraper):
     filepath = 'irma-shelters.json'
@@ -180,7 +182,7 @@ class IrmaShelterDupes(BaseScraper):
             geohash = Geohash.encode(
                 shelter['latitude'],
                 shelter['longitude'],
-                precision=7
+                precision=GEOHASH_PRECISION,
             )
             by_geohash.setdefault(geohash, []).append(shelter)
         dupe_groups = [
@@ -189,10 +191,10 @@ class IrmaShelterDupes(BaseScraper):
                 # More than one shelter in this group
                 len(pair[1]) > 1
                 # Group is not invalid lat/lon
-                and pair[0] != '00000000'
+                and pair[0] != ('0' * GEOHASH_PRECISION)
             )
         ]
-        no_latlons = by_geohash.get('00000000') or []
+        no_latlons = by_geohash.get('0' * GEOHASH_PRECISION) or []
         return {
             'dupe_groups': [{
                 'geohash': dupe_group[0],
