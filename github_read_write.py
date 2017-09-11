@@ -1,7 +1,7 @@
 """
 This class knows how to read and write LARGE files to Github. The regular
 GitHub Contents API can't handle files larger than 1MB - this class knows how
-to spot that proble and switch to the large-file-supporting low level Git Data
+to spot that problem and switch to the large-file-supporting low level Git Data
 API instead.
 
 https://developer.github.com/v3/repos/contents/
