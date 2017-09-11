@@ -395,5 +395,10 @@ if __name__ == '__main__':
     ]
     while True:
         for scraper in scrapers:
-            scraper.scrape_and_store()
+            try:
+                scraper.scrape_and_store()
+            except Exception, e:
+                print "!!!! %s: %s !!!!!" % (
+                    scraper.__class__.__name__, e
+                )
         time.sleep(120)
