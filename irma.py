@@ -15,6 +15,7 @@ import requests
 import os
 import time
 import json
+import datetime
 
 
 class ZeemapsScraper(BaseScraper):
@@ -344,6 +345,7 @@ if __name__ == '__main__':
         )
     ]
     while True:
+        print datetime.datetime.now()
         for scraper in scrapers:
             try:
                 scraper.scrape_and_store()
