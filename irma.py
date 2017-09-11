@@ -34,7 +34,10 @@ class FplStormOutages(BaseScraper):
     slack_channel = None
 
     def fetch_data(self):
-        content = requests.get(self.url).content
+        content = requests.get(
+            self.url,
+            timeout=10,
+        ).content
         # Stripe the 'define(' and ');'
         if content.startswith('define('):
             content = content.split('define(')[1]
@@ -49,7 +52,10 @@ class FplCountyOutages(BaseScraper):
     slack_channel = None
 
     def fetch_data(self):
-        return requests.get(self.url).json()
+        return requests.get(
+            self.url,
+            timeout=10,
+        ).json()
 
 
 class PascoCounty(BaseScraper):
