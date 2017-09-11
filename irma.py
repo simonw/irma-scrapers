@@ -16,6 +16,61 @@ import os
 import time
 import json
 import datetime
+import zipfile
+import StringIO
+from xml.etree import ElementTree
+
+
+class GoogleCrisisKmlScraper(BaseScraper):
+    url = 'https://www.google.com/maps/d/u/1/kml?mid=1fJ4NZ21YW1Ru856hehpufId79CA&ll=22.47126398588183%2C-60.6005859375&z=5&cm.ttl=600'
+    source_url = 'http://google.org/crisismap/2017-irma'
+    filepath = 'google-crisis-irma-2017.json'
+
+    def create_message(self, new_data):
+        return self.update_message([], new_data, verb='Created')
+
+    def update_message(self, old_data, new_data, verb='Updated'):
+        def name(n):
+            if 'Name' not in n:
+                return None
+            return ('%s (%s)' % (
+                n['Name'], n.get('City, State/Province') or ''
+            )).replace(' ()', '')
+
+        current_names = [name(n) for n in new_data if name(n)]
+        previous_names = [name(n) for n in old_data if name(n)]
+        message = update_message_from_names(
+            current_names,
+            previous_names,
+            self.filepath,
+            verb=verb
+        )
+        message += '\nChange detected on %s' % self.source_url
+        return message
+
+    def fetch_data(self):
+        zipped = requests.get(self.url).content
+        zipdata = zipfile.ZipFile(StringIO.StringIO(zipped))
+        kml = zipdata.open('doc.kml').read()
+        et = ElementTree.fromstring(kml)
+        shelters = []
+        for placemark in et.findall('.//{http://www.opengis.net/kml/2.2}Placemark'):
+            shelter = {}
+            for data in placemark.findall('{http://www.opengis.net/kml/2.2}ExtendedData/{http://www.opengis.net/kml/2.2}Data'):
+                key = data.attrib['name']
+                value = ''.join(s.strip() for s in data.itertext())
+                shelter[key] = value
+            coords = placemark.find('.//{http://www.opengis.net/kml/2.2}coordinates').text.strip()
+            longitude, latitude, _ = coords.split(',')
+            shelter.update({
+                'latitude': latitude,
+                'longitude': longitude,
+            })
+            if 'Phone' in shelter:
+                # They come through in scientific number format for some reason
+                shelter['Phone'] = shelter['Phone'].replace('.', '').replace('E9', '')
+            shelters.append(shelter)
+        return shelters
 
 
 class SouthCarolinaShelters(BaseScraper):
@@ -367,6 +422,7 @@ if __name__ == '__main__':
     scrapers = [
         klass(github_token, slack_token)
         for klass in (
+            GoogleCrisisKmlScraper,
             SouthCarolinaShelters,
             FemaOpenShelters,
             FemaNSS,
