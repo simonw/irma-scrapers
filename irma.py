@@ -24,9 +24,7 @@ def shelter_county(d):
     return d.get('COUNTY_PARISH') or d['county']
 
 
-class FemaOpenShelters(BaseScraper):
-    filepath = 'fema-open-shelters.json'
-    url = 'https://gis.fema.gov/REST/services/NSS/OpenShelters/MapServer/0/query?f=json&returnGeometry=true&spatialRel=esriSpatialRelIntersects&geometry=%7B%22xmin%22%3A-10018754.171396945%2C%22ymin%22%3A2504688.5428529754%2C%22xmax%22%3A-7514065.628548954%2C%22ymax%22%3A5009377.085700965%2C%22spatialReference%22%3A%7B%22wkid%22%3A102100%7D%7D&geometryType=esriGeometryEnvelope&inSR=102100&outFields=*&outSR=102100'
+class BaseGisScraper(BaseScraper):
     source_url = None
 
     def create_message(self, new_data):
@@ -92,18 +90,23 @@ class FemaOpenShelters(BaseScraper):
         return shelters
 
 
-class FemaNSS(FemaOpenShelters):
+class FemaOpenShelters(BaseGisScraper):
+    filepath = 'fema-open-shelters.json'
+    url = 'https://gis.fema.gov/REST/services/NSS/OpenShelters/MapServer/0/query?f=json&returnGeometry=true&spatialRel=esriSpatialRelIntersects&geometry=%7B%22xmin%22%3A-10018754.171396945%2C%22ymin%22%3A2504688.5428529754%2C%22xmax%22%3A-7514065.628548954%2C%22ymax%22%3A5009377.085700965%2C%22spatialReference%22%3A%7B%22wkid%22%3A102100%7D%7D&geometryType=esriGeometryEnvelope&inSR=102100&outFields=*&outSR=102100'
+
+
+class FemaNSS(BaseGisScraper):
     filepath = 'fema-nss.json'
     url = 'https://gis.fema.gov/REST/services/NSS/FEMA_NSS/MapServer/0/query?f=json&returnGeometry=true&spatialRel=esriSpatialRelIntersects&geometry=%7B%22xmin%22%3A-10018754.171396945%2C%22ymin%22%3A2504688.5428529754%2C%22xmax%22%3A-7514065.628548954%2C%22ymax%22%3A5009377.085700965%2C%22spatialReference%22%3A%7B%22wkid%22%3A102100%7D%7D&geometryType=esriGeometryEnvelope&inSR=102100&outFields=*&outSR=102100'
 
 
-class GemaAnimalShelters(FemaOpenShelters):
+class GemaAnimalShelters(BaseGisScraper):
     filepath = 'georgia-gema-animal-shelters.json'
     url = 'https://services1.arcgis.com/2iUE8l8JKrP2tygQ/arcgis/rest/services/AnimalShelters/FeatureServer/0/query?f=json&where=status%20%3D%20%27OPEN%27&returnGeometry=true&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=102100&resultOffset=0&resultRecordCount=1000'
     source_url = 'https://gema-soc.maps.arcgis.com/apps/webappviewer/index.html?id=279ef7cfc1da45edb640723c12b02b18'
 
 
-class GemaActiveShelters(FemaOpenShelters):
+class GemaActiveShelters(BaseGisScraper):
     filepath = 'georgia-gema-active-shelters.json'
     url = 'https://services1.arcgis.com/2iUE8l8JKrP2tygQ/arcgis/rest/services/SheltersActive/FeatureServer/0/query?f=json&where=shelter_information_shelter_type%20%3C%3E%20%27Reception%20Care%20Ctr.%27&returnGeometry=true&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=102100&resultOffset=0&resultRecordCount=1000'
     source_url = 'https://gema-soc.maps.arcgis.com/apps/webappviewer/index.html?id=279ef7cfc1da45edb640723c12b02b18'
@@ -427,7 +430,6 @@ if __name__ == '__main__':
             FplCountyOutages,
             GemaAnimalShelters,
             GemaActiveShelters,
-
         )
     ]
     while True:
