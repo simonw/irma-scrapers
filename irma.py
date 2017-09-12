@@ -184,6 +184,41 @@ class NorthGeorgiaOutages(BaseScraper):
         return requests.get(self.url).json()
 
 
+class TampaElectricOutages(BaseScraper):
+    filepath = 'tampa-electric-outages.json'
+    url = 'http://www.tampaelectric.com/residential/outages/outagemap/datafilereader/index.cfm'
+    slack_channel = None
+
+    def fetch_data(self):
+        return requests.get(
+            self.url,
+            headers={
+                'Referer': 'http://www.tampaelectric.com/residential/outages/outagemap/',
+            }
+        ).json()['markers']
+
+
+class JemcOutages(BaseScraper):
+    filepath = 'jemc-outages.json'
+    url = 'https://jemc.maps.sienatech.com/data/outages.xml'
+    slack_channel = None
+
+    def fetch_data(self):
+        et = ElementTree.fromstring(requests.get(self.url).content)
+        reports = et.find('reports').findall('report')
+        data = {}
+        for report in reports:
+            id = report.attrib['id']
+            keys = [d.attrib['key'] for d in report.findall('dimension/dim')]
+            rows = report.findall('dataset/t')
+            results = [
+                dict(zip(keys, [e.text for e in row]))
+                for row in rows
+            ]
+            data[id] = results
+        return data
+
+
 class BaseDukeScraper(BaseScraper):
     slack_channel = None
 
@@ -500,6 +535,8 @@ if __name__ == '__main__':
             DukeFloridaOutages,
             DukeCarolinasOutages,
             NorthGeorgiaOutages,
+            TampaElectricOutages,
+            JemcOutages,
         )
     ]
     while True:
