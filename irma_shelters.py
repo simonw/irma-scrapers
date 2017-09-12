@@ -282,6 +282,10 @@ class IrmaSheltersFloridaMissing(BaseScraper):
             summary.append('%d shelter%s resolved' % (
                 len(removed_map_urls), '' if len(removed_map_urls) == 1 else 's',
             ))
+        if current_map_urls:
+            summary.append('%d total' % (
+                len(current_map_urls)
+            ))
         if summary:
             summary_text = self.filepath + ': ' + (', '.join(summary))
         else:
