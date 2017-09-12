@@ -165,6 +165,16 @@ class ScegOutages(BaseScraper):
         return [feature['attributes'] for feature in data['features']]
 
 
+class GeorgiaOutages(BaseScraper):
+    filepath = 'georgiapower-outages.json'
+    url = 'http://outagemap.georgiapower.com/external/data/interval_generation_data/2017_09_12_00_59_50/thematic/thematic_areas.js?timestamp='
+    slack_channel = None
+
+    def fetch_data(self):
+        url = self.url + str(int(time.time()))
+        return requests.get(url).json()
+
+
 class PascoCounty(BaseScraper):
     # From http://www.pascocountyfl.net/index.aspx?NID=2816
     # in particular this iframe:
@@ -452,6 +462,7 @@ if __name__ == '__main__':
             GemaActiveShelters,
             ScegOutages,
             IrmaSheltersFloridaMissing,
+            GeorgiaOutages,
         )
     ]
     while True:
