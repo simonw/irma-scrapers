@@ -2,6 +2,7 @@ from base_scraper import BaseScraper
 from irma_shelters import (
     IrmaShelters,
     IrmaShelterDupes,
+    IrmaSheltersFloridaMissing,
 )
 from gis_scrapers import (
     FemaOpenShelters,
@@ -16,6 +17,100 @@ import os
 import time
 import json
 import datetime
+import zipfile
+import StringIO
+from xml.etree import ElementTree
+
+
+class GoogleCrisisKmlScraper(BaseScraper):
+    url = 'https://www.google.com/maps/d/u/1/kml?mid=1fJ4NZ21YW1Ru856hehpufId79CA&ll=22.47126398588183%2C-60.6005859375&z=5&cm.ttl=600'
+    source_url = 'http://google.org/crisismap/2017-irma'
+    filepath = 'google-crisis-irma-2017.json'
+
+    def create_message(self, new_data):
+        return self.update_message([], new_data, verb='Created')
+
+    def update_message(self, old_data, new_data, verb='Updated'):
+        def name(n):
+            if 'Name' not in n:
+                return None
+            return ('%s (%s)' % (
+                n['Name'], n.get('City, State/Province') or ''
+            )).replace(' ()', '')
+
+        current_names = [name(n) for n in new_data if name(n)]
+        previous_names = [name(n) for n in old_data if name(n)]
+        message = update_message_from_names(
+            current_names,
+            previous_names,
+            self.filepath,
+            verb=verb
+        )
+        message += '\nChange detected on %s' % self.source_url
+        return message
+
+    def fetch_data(self):
+        zipped = requests.get(self.url).content
+        zipdata = zipfile.ZipFile(StringIO.StringIO(zipped))
+        kml = zipdata.open('doc.kml').read()
+        et = ElementTree.fromstring(kml)
+        shelters = []
+        for placemark in et.findall('.//{http://www.opengis.net/kml/2.2}Placemark'):
+            shelter = {}
+            for data in placemark.findall('{http://www.opengis.net/kml/2.2}ExtendedData/{http://www.opengis.net/kml/2.2}Data'):
+                key = data.attrib['name']
+                value = ''.join(s.strip() for s in data.itertext())
+                shelter[key] = value
+            coords = placemark.find('.//{http://www.opengis.net/kml/2.2}coordinates').text.strip()
+            longitude, latitude, _ = coords.split(',')
+            shelter.update({
+                'latitude': latitude,
+                'longitude': longitude,
+            })
+            if 'Phone' in shelter:
+                # They come through in scientific number format for some reason
+                shelter['Phone'] = shelter['Phone'].replace('.', '').replace('E9', '')
+            shelters.append(shelter)
+        return shelters
+
+
+class SouthCarolinaShelters(BaseScraper):
+    url = 'http://scemd.org/ShelterStatus.html'
+    filepath = 'scemd-shelters.json'
+
+    def create_message(self, new_data):
+        return self.update_message([], new_data, verb='Created')
+
+    def update_message(self, old_data, new_data, verb='Updated'):
+        def name(n):
+            return '%s (%s County, SC)' % (
+                n['Shelter Name'], n['County']
+            )
+
+        current_names = [name(n) for n in new_data]
+        previous_names = [name(n) for n in old_data]
+        message = update_message_from_names(
+            current_names,
+            previous_names,
+            self.filepath,
+            verb=verb
+        )
+        message += '\nChange detected on %s' % self.url
+        return message
+
+    def fetch_data(self):
+        s = Soup(requests.get(self.url).content)
+        table = s.find('table')
+        trs = table.findAll('tr')
+        headings = [
+            th.getText()
+            for th in trs[0].findAll('th')
+        ]
+        shelters = []
+        for tr in trs[1:]:
+            content = [td.getText() for td in tr.findAll('td')]
+            shelters.append(dict(zip(headings, content)))
+        return shelters
 
 
 class ZeemapsScraper(BaseScraper):
@@ -57,6 +152,61 @@ class FplCountyOutages(BaseScraper):
             self.url,
             timeout=10,
         ).json()
+
+
+class ScegOutages(BaseScraper):
+    filepath = 'sceg-outages.json'
+    url = 'https://www.sceg.com/scanapublicservice/outagemapdata/gismapdataonly.aspx?gisUrl=OUTAGE_EX/Outage_EX&gisMapLayer=6'
+    source_url = 'https://www.sceg.com/outages-emergencies/power-outages/outage-map'
+    slack_channel = None
+
+    def fetch_data(self):
+        data = requests.get(self.url).json()
+        return [feature['attributes'] for feature in data['features']]
+
+
+class GeorgiaOutages(BaseScraper):
+    filepath = 'georgiapower-outages.json'
+    url = 'http://outagemap.georgiapower.com/external/data/interval_generation_data/2017_09_12_00_59_50/thematic/thematic_areas.js?timestamp='
+    slack_channel = None
+
+    def fetch_data(self):
+        url = self.url + str(int(time.time()))
+        return requests.get(url).json()
+
+
+class NorthGeorgiaOutages(BaseScraper):
+    filepath = 'north-georgia-outages.json'
+    url = 'http://www2.ngemc.com:81/api/weboutageviewer/get_live_data'
+    slack_channel = None
+
+    def fetch_data(self):
+        return requests.get(self.url).json()
+
+
+class BaseDukeScraper(BaseScraper):
+    slack_channel = None
+
+    def fetch_data(self):
+        metadata_url = 'https://s3.amazonaws.com/outagemap.duke-energy.com/data/%s/external/interval_generation_data/metadata.xml?timestamp=%d' % (
+            self.state_code, int(time.time())
+        )
+        metadata = requests.get(metadata_url).content
+        directory = metadata.split('<directory>')[1].split('</directory>')[0]
+        data_url = 'https://s3.amazonaws.com/outagemap.duke-energy.com/data/%s/external/interval_generation_data/%s/thematic/thematic_areas.js?timestamp=%d' % (
+            self.state_code, directory, int(time.time())
+        )
+        return requests.get(data_url).json()
+
+
+class DukeFloridaOutages(BaseDukeScraper):
+    filepath = 'duke-fl-outages.json'
+    state_code = 'fl'
+
+
+class DukeCarolinasOutages(BaseDukeScraper):
+    filepath = 'duke-ncsc-outages.json'
+    state_code = 'ncsc'
 
 
 class PascoCounty(BaseScraper):
@@ -328,6 +478,8 @@ if __name__ == '__main__':
     scrapers = [
         klass(github_token, slack_token)
         for klass in (
+            GoogleCrisisKmlScraper,
+            SouthCarolinaShelters,
             FemaOpenShelters,
             FemaNSS,
             IrmaShelters,
@@ -342,6 +494,12 @@ if __name__ == '__main__':
             FplCountyOutages,
             GemaAnimalShelters,
             GemaActiveShelters,
+            ScegOutages,
+            IrmaSheltersFloridaMissing,
+            GeorgiaOutages,
+            DukeFloridaOutages,
+            DukeCarolinasOutages,
+            NorthGeorgiaOutages,
         )
     ]
     while True:

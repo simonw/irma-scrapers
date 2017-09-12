@@ -1,6 +1,7 @@
 from base_scraper import BaseScraper
 import requests
 import Geohash
+import re
 
 IGNORE_DUPE_IDS = {
     456, # Hialeah Middle School
@@ -215,3 +216,119 @@ class IrmaShelterDupes(BaseScraper):
                 'view_url': 'https://irma-api.herokuapp.com/shelters/%s' % shelter['id'],
             } for shelter in no_latlons]
         }
+
+
+map_url_re = re.compile(
+    r'http://maps.google.com/maps\?saddr=&daddr=-?\d+\.\d+,-?\d+\.\d+'
+)
+
+
+class IrmaSheltersFloridaMissing(BaseScraper):
+    filepath = 'florida-shelters-missing.json'
+    our_url = 'https://raw.githubusercontent.com/simonw/irma-scraped-data/master/irma-shelters.json'
+    their_url = 'https://raw.githubusercontent.com/simonw/irma-scraped-data/master/florida-shelters.json'
+    issue_comments_url = 'https://api.github.com/repos/simonw/irma-scraped-data/issues/2/comments'
+
+    def create_message(self, new_data):
+        return self.update_message([], new_data, 'Created')
+
+    def update_message(self, old_data, new_data, verb='Updated'):
+        previous_map_urls = [
+            d['map_url'] for d in old_data
+        ]
+        current_map_urls = [
+            d['map_url'] for d in new_data
+        ]
+        added_map_urls = [
+            map_url for map_url in current_map_urls
+            if map_url not in previous_map_urls
+        ]
+        removed_map_urls = [
+            map_url for map_url in previous_map_urls
+            if map_url not in current_map_urls
+        ]
+
+        message = []
+
+        if added_map_urls:
+            message.append('New potentially missing shelters:')
+
+        for map_url in added_map_urls:
+            shelter = [s for s in new_data if s['map_url'] == map_url][0]
+            message.append('  %s (%s County)' % (shelter['name'], shelter['county']))
+            message.append('  Type: ' + shelter['type'])
+            message.append('  ' + shelter['address'])
+            message.append('  ' + shelter['city'])
+            message.append('  ' + shelter['map_url'])
+            message.append('')
+
+        if added_map_urls and removed_map_urls:
+            message.append('')
+
+        if removed_map_urls:
+            message.append('Previous missing shelters now resolved:')
+
+        for map_url in removed_map_urls:
+            shelter = [s for s in old_data if s['map_url'] == map_url][0]
+            message.append('  %s (%s County)' % (shelter['name'], shelter['county']))
+
+        body = '\n'.join(message)
+        summary = []
+        if added_map_urls:
+            summary.append('%d potentially missing shelter%s detected' % (
+                len(added_map_urls), '' if len(added_map_urls) == 1 else 's',
+            ))
+        if removed_map_urls:
+            summary.append('%d shelter%s resolved' % (
+                len(removed_map_urls), '' if len(removed_map_urls) == 1 else 's',
+            ))
+        if current_map_urls:
+            summary.append('%d total' % (
+                len(current_map_urls)
+            ))
+        if summary:
+            summary_text = self.filepath + ': ' + (', '.join(summary))
+        else:
+            summary_text = '%s %s' % (verb, self.filepath)
+        return summary_text + '\n\n' + body
+
+    def fetch_data(self):
+        our_shelters = requests.get(self.our_url).json()
+        their_shelters = requests.get(self.their_url).json()
+        our_geohashes = set([
+            Geohash.encode(s['latitude'], s['longitude'], 6)
+            for s in our_shelters
+        ])
+        for shelter in their_shelters:
+            coords = shelter['map_url'].split('daddr=')[1]
+            latitude, longitude = map(float, coords.split(','))
+            geohash = Geohash.encode(latitude, longitude, 6)
+            shelter['geohash'] = geohash
+        maybe_missing_shelters = [
+            s for s in their_shelters
+            if s['geohash'] not in our_geohashes
+        ]
+        ignore_map_urls = []
+        for comment in all_comments(self.issue_comments_url, self.github_token):
+            ignore_map_urls.extend(map_url_re.findall(comment['body']))
+        maybe_missing_shelters = [
+            s for s in maybe_missing_shelters
+            if s['map_url'] not in ignore_map_urls
+        ]
+        return maybe_missing_shelters
+
+
+def all_comments(issue_comments_url, github_token):
+    # Paginate through all comments on an issue
+    while issue_comments_url:
+        response = requests.get(
+            issue_comments_url,
+            headers={
+                'Authorization': 'token %s' % github_token,
+            })
+        try:
+            issue_comments_url = response.links['next']['url']
+        except KeyError:
+            issue_comments_url = None
+        for item in response.json():
+            yield item
