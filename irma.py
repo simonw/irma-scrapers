@@ -2,6 +2,7 @@ from base_scraper import BaseScraper
 from irma_shelters import (
     IrmaShelters,
     IrmaShelterDupes,
+    IrmaSheltersFloridaMissing,
 )
 from gis_scrapers import (
     FemaOpenShelters,
@@ -450,6 +451,7 @@ if __name__ == '__main__':
             GemaAnimalShelters,
             GemaActiveShelters,
             ScegOutages,
+            IrmaSheltersFloridaMissing,
         )
     ]
     while True:
