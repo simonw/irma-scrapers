@@ -308,17 +308,27 @@ class IrmaSheltersFloridaMissing(BaseScraper):
             s for s in their_shelters
             if s['geohash'] not in our_geohashes
         ]
-        comments = requests.get(
-            self.issue_comments_url,
-            headers={
-                'Authorization': 'token %s' % self.github_token,
-            },
-        ).json()
         ignore_map_urls = []
-        for comment in comments:
+        for comment in all_comments(self.issue_comments_url, self.github_token):
             ignore_map_urls.extend(map_url_re.findall(comment['body']))
         maybe_missing_shelters = [
             s for s in maybe_missing_shelters
             if s['map_url'] not in ignore_map_urls
         ]
         return maybe_missing_shelters
+
+
+def all_comments(issue_comments_url, github_token):
+    # Paginate through all comments on an issue
+    while issue_comments_url:
+        response = requests.get(
+            issue_comments_url,
+            headers={
+                'Authorization': 'token %s' % github_token,
+            })
+        try:
+            issue_comments_url = response.links['next']['url']
+        except KeyError:
+            issue_comments_url = None
+        for item in response.json():
+            yield item
