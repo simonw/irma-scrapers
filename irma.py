@@ -175,6 +175,31 @@ class GeorgiaOutages(BaseScraper):
         return requests.get(url).json()
 
 
+class BaseDukeScraper(BaseScraper):
+    slack_channel = None
+
+    def fetch_data(self):
+        metadata_url = 'https://s3.amazonaws.com/outagemap.duke-energy.com/data/%s/external/interval_generation_data/metadata.xml?timestamp=%d' % (
+            self.state_code, int(time.time())
+        )
+        metadata = requests.get(metadata_url).content
+        directory = metadata.split('<directory>')[1].split('</directory>')[0]
+        data_url = 'https://s3.amazonaws.com/outagemap.duke-energy.com/data/%s/external/interval_generation_data/%s/thematic/thematic_areas.js?timestamp=%d' % (
+            self.state_code, directory, int(time.time())
+        )
+        return requests.get(data_url).json()
+
+
+class DukeFloridaOutages(BaseDukeScraper):
+    filepath = 'duke-fl-outages.json'
+    state_code = 'fl'
+
+
+class DukeCarolinasOutages(BaseDukeScraper):
+    filepath = 'duke-ncsc-outages.json'
+    state_code = 'ncsc'
+
+
 class PascoCounty(BaseScraper):
     # From http://www.pascocountyfl.net/index.aspx?NID=2816
     # in particular this iframe:
@@ -463,6 +488,8 @@ if __name__ == '__main__':
             ScegOutages,
             IrmaSheltersFloridaMissing,
             GeorgiaOutages,
+            DukeFloridaOutages,
+            DukeCarolinasOutages,
         )
     ]
     while True:
