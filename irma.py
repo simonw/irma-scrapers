@@ -153,6 +153,17 @@ class FplCountyOutages(BaseScraper):
         ).json()
 
 
+class ScegOutages(BaseScraper):
+    filepath = 'sceg-outages.json'
+    url = 'https://www.sceg.com/scanapublicservice/outagemapdata/gismapdataonly.aspx?gisUrl=OUTAGE_EX/Outage_EX&gisMapLayer=6'
+    source_url = 'https://www.sceg.com/outages-emergencies/power-outages/outage-map'
+    slack_channel = None
+
+    def fetch_data(self):
+        data = requests.get(self.url).json()
+        return [feature['attributes'] for feature in data['features']]
+
+
 class PascoCounty(BaseScraper):
     # From http://www.pascocountyfl.net/index.aspx?NID=2816
     # in particular this iframe:
@@ -438,6 +449,7 @@ if __name__ == '__main__':
             FplCountyOutages,
             GemaAnimalShelters,
             GemaActiveShelters,
+            ScegOutages,
         )
     ]
     while True:
