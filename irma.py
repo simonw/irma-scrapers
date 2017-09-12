@@ -175,6 +175,15 @@ class GeorgiaOutages(BaseScraper):
         return requests.get(url).json()
 
 
+class NorthGeorgiaOutages(BaseScraper):
+    filepath = 'north-georgia-outages.json'
+    url = 'http://www2.ngemc.com:81/api/weboutageviewer/get_live_data'
+    slack_channel = None
+
+    def fetch_data(self):
+        return requests.get(self.url).json()
+
+
 class BaseDukeScraper(BaseScraper):
     slack_channel = None
 
@@ -490,6 +499,7 @@ if __name__ == '__main__':
             GeorgiaOutages,
             DukeFloridaOutages,
             DukeCarolinasOutages,
+            NorthGeorgiaOutages,
         )
     ]
     while True:
