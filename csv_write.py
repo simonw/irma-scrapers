@@ -1,4 +1,3 @@
-#https://eureka.ykyuen.info/2015/04/02/python-read-and-parse-a-json-via-url/
 import requests
 import pandas as pd
 
