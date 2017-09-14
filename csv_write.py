@@ -23,10 +23,6 @@ def fetch_data(url, key=None):
         data = data[key]
         return pd.DataFrame(data)
 
-"""
-def df_from_list(df_data):
-    return pd.DataFrame(df_data)
-"""
 
 if __name__ == '__main__':
     
