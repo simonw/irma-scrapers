@@ -15,7 +15,7 @@ def fetch_json(url):
     return requests.get(url).json()
 
 
-def fetch_data(url, key=None):
+def fetch_data_frame(url, key=None):
     data = fetch_json(url)
     if isinstance(data, list):
         return pd.DataFrame(data)
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     for c in git_contents:
         if c not in not_shelter_file:
             git_url = base_git_url + c
-            df_shelter_data = fetch_data(git_url)
+            df_shelter_data = fetch_data_frame(git_url)
             #print df_shelter_data.shape, 'is shape of ', c
             print c, 'has these columns: ', df_shelter_data.columns
 
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     # api reader code
     url = 'https://irma-api.herokuapp.com/api/v1/shelters'
     key = 'shelters'
-    df_api_shelters = fetch_data(url, key)
+    df_api_shelters = fetch_data_frame(url, key)
     print('irma-api shape = ', df_api_shelters.shape)
     #df_api_shelters.to_csv('api.csv', encoding='utf-8')
     """
