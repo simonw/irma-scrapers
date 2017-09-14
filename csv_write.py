@@ -23,10 +23,10 @@ def fetch_data(url, key=None):
         data = data[key]
         return pd.DataFrame(data)
 
-
+"""
 def df_from_list(df_data):
     return pd.DataFrame(df_data)
-
+"""
 
 if __name__ == '__main__':
     
@@ -50,7 +50,8 @@ if __name__ == '__main__':
         if c not in not_shelter_file:
             git_url = base_git_url + c
             df_shelter_data = fetch_data(git_url)
-            print df_shelter_data.shape, 'is shape of ', c
+            #print df_shelter_data.shape, 'is shape of ', c
+            print c, 'has these columns: ', df_shelter_data.columns
 
     """
     # csv
