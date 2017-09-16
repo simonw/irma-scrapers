@@ -3,6 +3,7 @@ from base_scraper import BaseDeltaScraper
 
 import requests
 import csv
+from pyproj import Proj, transform
 
 
 class NewYorkShelters(BaseDeltaScraper):
@@ -26,8 +27,18 @@ class NewYorkShelters(BaseDeltaScraper):
         rows = csv.reader(data.split('\r\n'))
         headers = next(rows)
         shelters = []
+        from_projection = Proj(init='epsg:2263', preserve_units=True)
+        to_projection = Proj(proj='latlong', ellps='WGS84', datum='WGS84')
         for row in rows:
             shelter = dict(zip(headers, row))
-            if shelter:
-                shelters.append(shelter)
+            if not shelter:
+                continue
+            # Convert from epsg:2263 - preserve_units=True because this is in feet
+            x, y = shelter['X'], shelter['Y']
+            longitude, latitude = transform(
+                from_projection, to_projection, x, y
+            )
+            shelter['longitude'] = longitude
+            shelter['latitude'] = latitude
+            shelters.append(shelter)
         return shelters
