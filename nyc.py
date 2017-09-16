@@ -11,7 +11,6 @@ class NewYorkShelters(BaseDeltaScraper):
     url = 'https://maps.nyc.gov/hurricane/data/center.csv'
     source_url = 'https://maps.nyc.gov/hurricane/'
     noun = 'shelter'
-    test_mode = True
 
     def display_record(self, record):
         display = []
