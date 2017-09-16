@@ -10,6 +10,9 @@ from gis_scrapers import (
     GemaAnimalShelters,
     GemaActiveShelters,
 )
+from nyc import (
+    NewYorkShelters,
+)
 
 from BeautifulSoup import BeautifulSoup as Soup
 import requests
@@ -537,6 +540,7 @@ if __name__ == '__main__':
             NorthGeorgiaOutages,
             TampaElectricOutages,
             JemcOutages,
+            NewYorkShelters,
         )
     ]
     while True:
