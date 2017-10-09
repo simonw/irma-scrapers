@@ -13,8 +13,10 @@ from gis_scrapers import (
 from nyc import (
     NewYorkShelters,
 )
-from santa_rosa import SantaRosaEmergencyInformation
-
+from santa_rosa import (
+    SantaRosaEmergencyInformation,
+    SonomaRoadConditions,
+)
 from BeautifulSoup import BeautifulSoup as Soup
 import requests
 import os
@@ -518,6 +520,7 @@ if __name__ == '__main__':
         klass(github_token, slack_token)
         for klass in (
             SantaRosaEmergencyInformation,
+            SonomaRoadConditions,
             GoogleCrisisKmlScraper,
             SouthCarolinaShelters,
             FemaOpenShelters,

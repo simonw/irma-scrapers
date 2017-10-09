@@ -21,3 +21,24 @@ class SantaRosaEmergencyInformation(BaseScraper):
         return {
             'html_lines': unicode(main_content).split(u'\n'),
         }
+
+
+class SonomaRoadConditions(BaseScraper):
+    url = 'http://roadconditions.sonoma-county.org/'
+    filepath = 'sonoma-road-conditions.json'
+    slack_channel = None
+
+    def fetch_data(self):
+        soup = Soup(requests.get(self.url).content)
+        road_closures = {}
+        for id in ('divTableCounty', 'divTableCity'):
+            name = {'divTableCounty': 'county_roads', 'divTableCity': 'city_roads'}[id]
+            div = soup.find('div', {'id': id})
+            table = div.find('table')
+            headers = [th.text for th in table.findAll('th')]
+            closures = []
+            for tr in table.find('tbody').findAll('tr'):
+                values = [td.text for td in tr.findAll('td')]
+                closures.append(dict(zip(headers, values)))
+            road_closures[name] = closures
+        return road_closures
