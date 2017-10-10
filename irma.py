@@ -17,6 +17,7 @@ from north_bay import (
     CaliforniaDOTRoadInfo,
     SantaRosaEmergencyInformation,
     SonomaRoadConditions,
+    CaliforniaHighwayPatrolIncidents,
 )
 from BeautifulSoup import BeautifulSoup as Soup
 import requests
@@ -517,11 +518,8 @@ class CrowdSourceRescue(BaseScraper):
 
 if __name__ == '__main__':
     test_mode = ('--test' in sys.argv)
-    github_token = None
-    slack_token = None
-    if not test_mode:
-        github_token = os.environ['GITHUB_API_TOKEN']
-        slack_token = os.environ['SLACK_TOKEN']
+    github_token = os.environ.get('GITHUB_API_TOKEN', '')
+    slack_token = os.environ.get('SLACK_TOKEN', '')
     scrapers = [
         klass(github_token, slack_token)
         for klass in (
@@ -553,6 +551,7 @@ if __name__ == '__main__':
             JemcOutages,
             NewYorkShelters,
             CaliforniaDOTRoadInfo,
+            CaliforniaHighwayPatrolIncidents,
         )
     ]
     while True:

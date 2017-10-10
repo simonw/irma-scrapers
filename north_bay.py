@@ -1,6 +1,8 @@
-from base_scraper import BaseScraper
+from base_scraper import BaseScraper, BaseDeltaScraper
 from BeautifulSoup import Comment, BeautifulSoup as Soup
+from xml.etree import ElementTree
 import requests
+import re
 
 
 class SantaRosaEmergencyInformation(BaseScraper):
@@ -64,3 +66,43 @@ class CaliforniaDOTRoadInfo(BaseScraper):
         return {
             'text_lines': [l.rstrip('\r') for l in text.split('\n')],
         }
+
+
+class CaliforniaHighwayPatrolIncidents(BaseDeltaScraper):
+    url = 'http://quickmap.dot.ca.gov/data/chp-only.kml'
+    filepath = 'chp-incidents.json'
+    slack_channel = None
+    record_key = 'name'
+    noun = 'incident'
+
+    def display_record(self, incident):
+        display = []
+        display.append('  %s' % incident['name'])
+        display.append('    https://www.google.com/maps/search/%(latitude)s,%(longitude)s' % incident)
+        display.append('    ' + incident['description'])
+        display.append('')
+        return '\n'.join(display)
+
+    def fetch_data(self):
+        kml = requests.get(self.url).content
+        et = ElementTree.fromstring(kml)
+        incidents = []
+        for placemark in et.findall('.//{http://www.opengis.net/kml/2.2}Placemark'):
+            coords = placemark.find('.//{http://www.opengis.net/kml/2.2}coordinates').text.strip()
+            latitude, longitude, blah = map(float, coords.split(','))
+            description = placemark.find('{http://www.opengis.net/kml/2.2}description').text.strip()
+            name = placemark.find('{http://www.opengis.net/kml/2.2}name').text.strip()
+            incidents.append({
+                'name': name,
+                'description': strip_tags(description),
+                'latitude': latitude,
+                'longitude': longitude,
+            })
+        return incidents
+
+
+tag_re = re.compile('<.*?>')
+
+
+def strip_tags(s):
+    return tag_re.sub('', s)
