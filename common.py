@@ -59,6 +59,10 @@ class Scraper(object):
             print '%s; Data was None' % self.filepath
             return
 
+        if self.test_mode and not self.github_token:
+            print json.dumps(data, indent=2)
+            return
+
         # We need to store the data
         github = GithubContent(self.owner, self.repo, self.github_token)
         if not self.last_data or not self.last_sha:
@@ -83,6 +87,8 @@ class Scraper(object):
 
         if self.test_mode:
             print message
+            print
+            print json.dumps(data, indent=2)
             return
 
         content_sha, commit_sha = github.write(

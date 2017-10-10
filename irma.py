@@ -20,6 +20,7 @@ from north_bay import (
 from BeautifulSoup import BeautifulSoup as Soup
 import requests
 import os
+import sys
 import time
 import json
 import datetime
@@ -514,8 +515,12 @@ class CrowdSourceRescue(BaseScraper):
 
 
 if __name__ == '__main__':
-    github_token = os.environ['GITHUB_API_TOKEN']
-    slack_token = os.environ['SLACK_TOKEN']
+    test_mode = ('--test' in sys.argv)
+    github_token = None
+    slack_token = None
+    if not test_mode:
+        github_token = os.environ['GITHUB_API_TOKEN']
+        slack_token = os.environ['SLACK_TOKEN']
     scrapers = [
         klass(github_token, slack_token)
         for klass in (
@@ -551,6 +556,8 @@ if __name__ == '__main__':
     while True:
         print datetime.datetime.now()
         for scraper in scrapers:
+            if test_mode and not scraper.test_mode:
+                continue
             try:
                 scraper.scrape_and_store()
             except Exception, e:
