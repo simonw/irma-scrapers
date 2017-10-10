@@ -34,7 +34,6 @@ class PGEOutagesIndividual(BaseDeltaScraper):
         for region in data['outagesRegions']:
             for outage in region['outages']:
                 outage['regionName'] = region['regionName']
-                outage['regionID'] = region['id']
                 outages.append(outage)
         return outages
 
