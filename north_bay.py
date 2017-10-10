@@ -17,6 +17,16 @@ class SantaRosaEmergencyInformation(BaseScraper):
         # Remove source comments
         comments = soup.findAll(text=lambda text: isinstance(text, Comment))
         [comment.extract() for comment in comments]
+        # Remove almost all attributes
+        for tag in main_content.recursiveChildGenerator():
+            try:
+                tag.attrs = [
+                    (key, value) for key, value in tag.attrs
+                    if key in ('href', 'src')
+                    and not value.startswith('#')
+                ]
+            except AttributeError:
+                pass
 
         return {
             'html_lines': unicode(main_content).split(u'\n'),

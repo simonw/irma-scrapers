@@ -13,7 +13,7 @@ from gis_scrapers import (
 from nyc import (
     NewYorkShelters,
 )
-from santa_rosa import (
+from north_bay import (
     SantaRosaEmergencyInformation,
     SonomaRoadConditions,
 )
