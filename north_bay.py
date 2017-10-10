@@ -5,6 +5,18 @@ import requests
 import re
 
 
+class PGEOutagesByCity(BaseScraper):
+    url = 'https://apim.pge.com/cocoutage/outages/getOutagesRegions?regionType=city&expand=true'
+    filepath = 'pge-outages-by-city.json'
+    slack_channel = None
+
+    def fetch_data(self):
+        return requests.get(
+            self.url,
+            timeout=10,
+        ).json()
+
+
 class SantaRosaEmergencyInformation(BaseScraper):
     url = 'https://srcity.org/610/Emergency-Information'
     filepath = 'santa-rosa-emergency.json'
