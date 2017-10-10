@@ -19,6 +19,7 @@ from north_bay import (
     SonomaRoadConditions,
     CaliforniaHighwayPatrolIncidents,
     PGEOutagesByCity,
+    PGEOutagesIndividual,
 )
 from BeautifulSoup import BeautifulSoup as Soup
 import requests
@@ -554,6 +555,7 @@ if __name__ == '__main__':
             CaliforniaDOTRoadInfo,
             CaliforniaHighwayPatrolIncidents,
             PGEOutagesByCity,
+            PGEOutagesIndividual,
         )
     ]
     while True:
@@ -567,4 +569,7 @@ if __name__ == '__main__':
                 print "!!!! %s: %s !!!!!" % (
                     scraper.__class__.__name__, e
                 )
+                if test_mode:
+                    import pdb; pdb.post_mortem()
+
         time.sleep(120)
