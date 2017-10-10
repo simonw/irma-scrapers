@@ -18,7 +18,6 @@ from north_bay import (
     SantaRosaEmergencyInformation,
     SonomaRoadConditions,
     CaliforniaHighwayPatrolIncidents,
-    PGEOutagesByCity,
     PGEOutagesIndividual,
 )
 from BeautifulSoup import BeautifulSoup as Soup
@@ -554,7 +553,6 @@ if __name__ == '__main__':
             NewYorkShelters,
             CaliforniaDOTRoadInfo,
             CaliforniaHighwayPatrolIncidents,
-            PGEOutagesByCity,
             PGEOutagesIndividual,
         )
     ]
