@@ -14,6 +14,7 @@ from nyc import (
     NewYorkShelters,
 )
 from north_bay import (
+    CaliforniaDOTRoadInfo,
     SantaRosaEmergencyInformation,
     SonomaRoadConditions,
 )
@@ -551,6 +552,7 @@ if __name__ == '__main__':
             TampaElectricOutages,
             JemcOutages,
             NewYorkShelters,
+            CaliforniaDOTRoadInfo,
         )
     ]
     while True:

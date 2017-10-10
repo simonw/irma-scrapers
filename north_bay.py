@@ -52,3 +52,15 @@ class SonomaRoadConditions(BaseScraper):
                 closures.append(dict(zip(headers, values)))
             road_closures[name] = closures
         return road_closures
+
+
+class CaliforniaDOTRoadInfo(BaseScraper):
+    url = 'http://www.dot.ca.gov/hq/roadinfo/Hourly'
+    filepath = 'dot-ca-roadinfo-hourly.json'
+    slack_channel = None
+
+    def fetch_data(self):
+        text = requests.get(self.url).content
+        return {
+            'text_lines': [l.rstrip('\r') for l in text.split('\n')],
+        }
