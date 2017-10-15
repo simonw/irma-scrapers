@@ -87,7 +87,7 @@ class FemaOpenShelters(BaseGisScraper):
 
 
 class FemaNSS(BaseGisScraper):
-    filepath = 'fema-nss.json'
+    filepath = 'fema-nss-usa.json'
     url = 'https://gis.fema.gov/REST/services/NSS/FEMA_NSS/MapServer/0/query?f=json&returnGeometry=true&spatialRel=esriSpatialRelIntersects&geometry=%7B%22xmin%22%3A+-14404742.108649602%2C+%22ymin%22%3A+-55660.4518654215%2C+%22ymax%22%3A+6782064.328749425%2C+%22xmax%22%3A+-5988988.6046781195%2C+%22spatialReference%22%3A+%7B%22wkid%22%3A+102100%7D%7D&geometryType=esriGeometryEnvelope&inSR=102100&outFields=*&outSR=102100'
 
 
