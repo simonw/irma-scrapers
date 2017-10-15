@@ -225,9 +225,9 @@ map_url_re = re.compile(
 
 class IrmaSheltersFloridaMissing(BaseScraper):
     filepath = 'florida-shelters-missing.json'
-    our_url = 'https://raw.githubusercontent.com/simonw/irma-scraped-data/master/irma-shelters.json'
-    their_url = 'https://raw.githubusercontent.com/simonw/irma-scraped-data/master/florida-shelters.json'
-    issue_comments_url = 'https://api.github.com/repos/simonw/irma-scraped-data/issues/2/comments'
+    our_url = 'https://raw.githubusercontent.com/simonw/disaster-data/master/irma-shelters.json'
+    their_url = 'https://raw.githubusercontent.com/simonw/disaster-data/master/florida-shelters.json'
+    issue_comments_url = 'https://api.github.com/repos/simonw/disaster-data/issues/2/comments'
 
     def create_message(self, new_data):
         return self.update_message([], new_data, 'Created')

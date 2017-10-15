@@ -1,7 +1,7 @@
 # irma-scrapers
 
 Screen scrapers relating to hurricane Irma. See their output in
-https://github.com/simonw/irma-scraped-data/
+https://github.com/simonw/disaster-data/
 
 ## Irma Response
 
@@ -32,7 +32,7 @@ time the scraper ran, those changes will be captured by git and made available
 in the commit log.
 
 Recent changes tracked by the scraper collection can be seen here:
-https://github.com/simonw/irma-scraped-data/commits/master
+https://github.com/simonw/disaster-data/commits/master
 
 ## Generating useful commit messages
 
@@ -52,7 +52,7 @@ The full commit also shows the changes to the underlying JSON, but the human-
 readable message provides enough information that people who are not JSON-
 literate programmers can still derive value from the commit.
 
-https://github.com/simonw/irma-scraped-data/commit/7919aeff0913ec26d1bea8dc
+https://github.com/simonw/disaster-data/commit/7919aeff0913ec26d1bea8dc
 
 ## Publishing to Slack
 

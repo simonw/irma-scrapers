@@ -3,7 +3,7 @@ from common import Scraper
 
 class BaseScraper(Scraper):
     owner = 'simonw'
-    repo = 'irma-scraped-data'
+    repo = 'disaster-data'
     committer = {
         'name': 'irma-scraper',
         'email': 'irma-scraper@example.com',
