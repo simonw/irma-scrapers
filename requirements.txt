@@ -1,4 +1,4 @@
 BeautifulSoup==3.2.1
-requests==2.20.0
+requests==2.31.0
 Geohash==1.0
 pyproj==1.9.5.1
